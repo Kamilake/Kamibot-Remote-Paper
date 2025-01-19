@@ -1,11 +1,12 @@
-name: ExamplePlugin
+name: Kamibot-Remote
 version: 1.0.0
-main: kamibot.ExamplePlugin
+main: kamibot.KamibotRemote
 description: An example plugin
-author: PaperMC
+author: Kamilake
 website: https://papermc.io
 api-version: '1.21.4'
-prefix: EpicPaperMCHypePlugin
+prefix: 'Kamibot'
+# prefix: '&7[&6Kamibot&7] &r'
 default-permission: false
 libraries:
   - com.google.guava:guava:30.1.1-jre
@@ -13,9 +14,18 @@ libraries:
 
 
 commands:
-    command:
-        description: "This is a command"
-        usage: "/command <arg>"
-        aliases: [cmd, command]
-        permission: permission.node
-        permission-message: "You do not have permission to use this command"
+    kamibot-info:
+        description: "Kamibot Remote 정보 확인"
+        usage: "/kamibot-info"
+        permission: kamibot.info
+        permission-message: "이 명령어를 사용할 권한이 없습니다."
+    kamibot-register:
+        description: "Kamibot Discord 채널 등록"
+        usage: "/kamibot-register <채널 링크>"
+        permission: kamibot.register
+        permission-message: "이 명령어를 사용할 권한이 없습니다."
+    discord:
+        description: "Discord 계정 통합"
+        usage: "/discord <디스코드 계정>"
+        permission: kamibot.discord
+        permission-message: "이 명령어를 사용할 권한이 없습니다."
