@@ -1,0 +1,21 @@
+name: ExamplePlugin
+version: 1.0.0
+main: kamibot.ExamplePlugin
+description: An example plugin
+author: PaperMC
+website: https://papermc.io
+api-version: '1.21.4'
+prefix: EpicPaperMCHypePlugin
+default-permission: false
+libraries:
+  - com.google.guava:guava:30.1.1-jre
+  - com.google.code.gson:gson:2.8.6
+
+
+commands:
+    command:
+        description: "This is a command"
+        usage: "/command <arg>"
+        aliases: [cmd, command]
+        permission: permission.node
+        permission-message: "You do not have permission to use this command"
