@@ -8,7 +8,6 @@ on:
 jobs:
   bump-version:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -20,16 +19,42 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set output tag
-        id: set_output_tag
-        run: echo "::set-output name=new_tag::${{ steps.tag_version.outputs.new_tag }}"
+        id: tag
+        run: echo "new_tag=${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_OUTPUT
+
+    outputs:
+      tag: ${{ steps.tag_version.outputs.new_tag }}
+      changelog: ${{ steps.tag_version.outputs.changelog }}
+
+  release:
+    runs-on: ubuntu-latest
+    needs: bump-version
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.bump-version.outputs.tag }}
+          release_name: Release ${{ needs.bump-version.outputs.tag }}
+          draft: false
+          prerelease: false
+
+    outputs:
+      tag: ${{ needs.bump-version.outputs.tag }}
+      changelog: ${{ needs.bump-version.outputs.changelog }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
 
   build:
     runs-on: ubuntu-latest
-    needs: bump-version
+    needs: release
     strategy:
       matrix:
         minecraft-version: ["1.20", "1.21"]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -44,36 +69,15 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew shadowJar -PreleaseVersion=${{ needs.bump-version.outputs.new_tag }} -PminecraftVersion=${{ matrix.minecraft-version }}
-
-  release:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs.bump-version.outputs.new_tag }}
-          release_name: Release ${{ needs.bump-version.outputs.new_tag }}
-          draft: false
-          prerelease: false
+        run: ./gradlew shadowJar -PreleaseVersion=${{ needs.release.outputs.tag }} -PminecraftVersion=${{ matrix.minecraft-version }}
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/libs/Kamibot-Remote-Paper_${{ matrix.minecraft-version }}_${{ needs.bump-version.outputs.new_tag }}.jar
-          asset_name: Kamibot-Remote-Paper_${{ matrix.minecraft-version }}_${{ needs.bump-version.outputs.new_tag }}.jar
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./build/libs/Kamibot-Remote-Paper_${{ matrix.minecraft-version }}_${{ needs.release.outputs.tag }}.jar
+          asset_name: Kamibot-Remote-Paper_${{ matrix.minecraft-version }}_${{ needs.release.outputs.tag }}.jar
           asset_content_type: application/zip
-          body: ${{ steps.tag_version.outputs.changelog }}
-
-          
+          body: ${{ needs.release.outputs.changelog }}
