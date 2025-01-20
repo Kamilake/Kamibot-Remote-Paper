@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 'refs/tags/*'
 
 jobs:
   build:
@@ -21,13 +20,23 @@ jobs:
       uses: actions/setup-java@v2
       with:
         distribution: 'adopt'
-        java-version: '21'
+        java-version: '11'
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
     - name: Build with Gradle
-      run: ./gradlew build -PreleaseVersion=${{ github.sha }} -PminecraftVersion=${{ matrix.minecraft-version }}
+      run: ./gradlew shadowJar -PreleaseVersion=${{ github.sha }} -PminecraftVersion=${{ matrix.minecraft-version }}
+
+    - name: Create Git Tag
+      run: git tag -a v${{ github.sha }} -m "Release for commit ${{ github.sha }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Git Tag
+      run: git push origin v${{ github.sha }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     runs-on: ubuntu-latest
@@ -43,8 +52,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        tag_name: v${{ github.sha }}
+        release_name: Release ${{ github.sha }}
         draft: false
         prerelease: false
 
