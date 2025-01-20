@@ -1,5 +1,5 @@
 name: Kamibot-Remote
-version: 1.0.0
+version: ${version}
 main: kamibot.KamibotRemote
 description: An example plugin
 author: Kamilake
