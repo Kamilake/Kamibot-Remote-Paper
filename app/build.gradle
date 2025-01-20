@@ -5,7 +5,7 @@ plugins {
 }
 
 ext {
-    releaseVersion = project.hasProperty('releaseVersion') ? project.releaseVersion : '0.0.1'
+    releaseVersion = project.hasProperty('releaseVersion') ? project.releaseVersion : 'v0.0.1'
     minecraftVersion = project.hasProperty('minecraftVersion') ? project.minecraftVersion : '1.20'
 }
 
