@@ -4,7 +4,7 @@ main: kamibot.KamibotRemote
 description: An example plugin
 author: Kamilake
 website: https://papermc.io
-api-version: '1.21.4'
+api-version: '1.20'
 prefix: 'Kamibot'
 # prefix: '&7[&6Kamibot&7] &r'
 default-permission: false
