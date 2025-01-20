@@ -43,8 +43,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.event.release.tag_name }}
-        release_name: Release ${{ github.event.release.tag_name }}
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
 
@@ -54,6 +54,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./build/libs/app-all.jar
+        asset_path: ./build/libs/Kamibot-Remote-Paper_${{ matrix.minecraft-version }}_${{ github.sha }}.jar
         asset_name: Kamibot-Remote-Paper_${{ matrix.minecraft-version }}_${{ github.sha }}.jar
         asset_content_type: application/zip
