@@ -4,12 +4,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerLevelChangeEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -164,6 +166,8 @@ public class KamibotRemote extends JavaPlugin implements Listener {
   public void onPlayerDeath(PlayerDeathEvent event) {
     Player player = event.getEntity();
     String killer = player.getKiller() != null ? player.getKiller().getName() : "environment";
+    EntityDamageEvent damageEvent = player.getLastDamageCause();
+    DamageSource damageSource = damageEvent.getDamageSource();
     String playerPosString = String.format("%.2f, %.2f, %.2f", player.getLocation().getX(), player.getLocation().getY(),
         player.getLocation().getZ());
     String deathMessage = player.getName() + " was killed by " + killer;
@@ -172,7 +176,7 @@ public class KamibotRemote extends JavaPlugin implements Listener {
         .set("eventType", "PlayerDeathEvent")
         .set("playerName", player.getName())
         .set("killerName", killer)
-        .set("damageSource", player.getLastDamageCause().getCause().name())
+        .set("damageSource", damageSource.getDamageType().getTranslationKey())
         .set("playerPos", playerPosString)
         .set("playerUUID", player.getUniqueId().toString())
         .set("deathMessage", deathMessage)
