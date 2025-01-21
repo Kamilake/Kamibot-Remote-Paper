@@ -13,6 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Get Commit Message
+        id: get_commit_message
+        run: echo "COMMIT_MESSAGE=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
       - name: Bump version and push tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.2
@@ -22,6 +26,7 @@ jobs:
     outputs:
       tag: ${{ steps.tag_version.outputs.new_tag }}
       changelog: ${{ steps.tag_version.outputs.changelog }}
+      commit_message: ${{ steps.get_commit_message.outputs.COMMIT_MESSAGE }}
 
   release:
     name: Create Release
@@ -41,7 +46,9 @@ jobs:
           release_name: Release ${{ needs.bump-version.outputs.tag }}
           draft: false
           prerelease: false
-          body: ${{ needs.bump-version.outputs.changelog }}
+          body: |
+            ${{ needs.bump-version.outputs.changelog }}
+            ${{ needs.bump-version.outputs.commit_message }}
 
     outputs:
       tag: ${{ needs.bump-version.outputs.tag }}
