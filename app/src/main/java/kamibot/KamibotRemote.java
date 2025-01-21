@@ -1,41 +1,47 @@
 package kamibot;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.TextComponent;
+
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.util.logging.Logger;
 
-public class KamibotRemote extends JavaPlugin implements Listener, CommandExecutor {
+public class KamibotRemote extends JavaPlugin implements Listener {
 
   @Override
   public void onEnable() {
     Config.loadConfig(this);
     new WebsocketSender(URI.create(Config.kamibotSocketUrl), this);
-    getLogger().info("====Kamibot Remote====");
-    getLogger().info("Connecting " + Config.kamibotSocketUrl + "...");
-    getLogger().info("UUID: " + Config.kamibotSocketUrl);
 
-    getServer().getPluginManager().registerEvents(this, this);
-    getCommand("kamibot-info").setExecutor(this);
-    getCommand("kamibot-register").setExecutor(this);
-    getCommand("discord").setExecutor(this);
+    Logger logger = getLogger();
+    logger.info("====Kamibot Remote====");
+    logger.info("Connecting " + Config.kamibotSocketUrl + "...");
+    logger.info("UUID: " + Config.kamibotSocketUrl);
+
+    Server server = getServer();
+    server.getPluginManager().registerEvents(this, this);
+    server.getPluginCommand("kamibot-info").setExecutor(this);
+    server.getPluginCommand("kamibot-register").setExecutor(this);
+    server.getPluginCommand("discord").setExecutor(this);
 
     new EventDispatcher()
         .set("eventType", "ServerStartingEvent")
-        .set("motd", getServer().getMotd())
+        .set("motd", ((TextComponent) getServer().motd()).content())
         .send();
   }
 
@@ -43,7 +49,7 @@ public class KamibotRemote extends JavaPlugin implements Listener, CommandExecut
   public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
     if (command.getName().equalsIgnoreCase("kamibot-info")) {
       String output = "====Kamibot Remote 정보====\n";
-      output += "서버: " + getServer().getMotd() + "\n";
+      output += "서버: " + ((TextComponent) getServer().motd()).content() + "\n";
       output += "UUID: " + Config.kamibotRemoteUuid + "\n";
       output += "소켓: " + Config.kamibotSocketUrl + "\n";
       long delay = measureHttpGetDelay();
@@ -55,28 +61,28 @@ public class KamibotRemote extends JavaPlugin implements Listener, CommandExecut
       return true;
     } else if (command.getName().equalsIgnoreCase("kamibot-register")) {
       if (args.length < 1) {
-        sender.sendMessage("사용법: /kamibot-register \"<채널 링크>\"\n연동하고 싶은 Discord 채널을 우클릭한 다음 '링크 복사하기'를 누르세요.");
+        sender.sendMessage("사용법: /kamibot-register <채널 링크>\n연동하고 싶은 Discord 채널을 우클릭한 다음 '링크 복사하기'를 누르세요.");
         return true;
       }
       String url = args[0];
       String[] urlParts = url.split("/");
       if (urlParts.length < 6 || !urlParts[2].equals("discord.com") || !urlParts[3].equals("channels")) {
         sender.sendMessage(
-            "올바른 Discord 채널 링크를 입력하세요.\n 예시: /kamibot-register \"https://discord.com/channels/996780771564081262/996953596329476126\"");
+            "올바른 Discord 채널 링크를 입력하세요.\n 예시: /kamibot-register https://discord.com/channels/1277440737939554376/1330761715306201188");
         return true;
       }
       String guildId = urlParts[4];
       String channelId = urlParts[5];
 
       Player player = sender instanceof Player ? (Player) sender : null;
-      String playerName = player != null ? player.getDisplayName() : null;
+      String playerName = player != null ? player.getName() : null;
       String playerUUID = player != null ? player.getUniqueId().toString() : null;
 
       new EventDispatcher()
           .set("eventType", "RegisterChannelEvent")
           .set("guildId", guildId)
           .set("channelId", channelId)
-          .set("serverName", getServer().getMotd())
+          .set("serverName", ((TextComponent) getServer().motd()).content())
           .set("uuid", Config.kamibotRemoteUuid)
           .set("playerName", playerName)
           .set("playerUUID", playerUUID)
@@ -99,9 +105,9 @@ public class KamibotRemote extends JavaPlugin implements Listener, CommandExecut
       new EventDispatcher()
           .set("eventType", "DiscordIntegrationEvent")
           .set("discordId", id)
-          .set("serverName", getServer().getMotd())
+          .set("serverName", ((TextComponent) getServer().motd()).content())
           .set("serverUuid", Config.kamibotRemoteUuid)
-          .set("playerName", player.getDisplayName())
+          .set("playerName", player.getName())
           .set("playerUUID", player.getUniqueId().toString())
           .send();
 
@@ -114,9 +120,12 @@ public class KamibotRemote extends JavaPlugin implements Listener, CommandExecut
   @EventHandler
   public void onPlayerJoin(PlayerJoinEvent event) {
     Player player = event.getPlayer();
+    player.addAttachment(this, "kamibot.discord", true);
+    player.addAttachment(this, "kamibot.info", true);
+
     new EventDispatcher()
         .set("eventType", "PlayerLoggedInEvent")
-        .set("playerName", player.getDisplayName())
+        .set("playerName", player.getName())
         .set("playerUUID", player.getUniqueId().toString())
         .set("playerCount", Bukkit.getOnlinePlayers().size())
         .set("maxPlayerCount", getServer().getMaxPlayers())
@@ -128,7 +137,7 @@ public class KamibotRemote extends JavaPlugin implements Listener, CommandExecut
     Player player = event.getPlayer();
     new EventDispatcher()
         .set("eventType", "PlayerLoggedOutEvent")
-        .set("playerName", player.getDisplayName())
+        .set("playerName", player.getName())
         .set("playerUUID", player.getUniqueId().toString())
         .set("playerCount", Bukkit.getOnlinePlayers().size() - 1)
         .set("maxPlayerCount", getServer().getMaxPlayers())
@@ -141,11 +150,12 @@ public class KamibotRemote extends JavaPlugin implements Listener, CommandExecut
   }
 
   @EventHandler
-  public void onPlayerChat(AsyncPlayerChatEvent event) {
+  public void onPlayerChat(AsyncChatEvent event) {
+    TextComponent message = (TextComponent) event.message();
     new EventDispatcher()
         .set("eventType", "ServerChatEvent")
-        .set("message", event.getMessage())
-        .set("playerName", event.getPlayer().getDisplayName())
+        .set("message", message.content())
+        .set("playerName", event.getPlayer().getName())
         .set("playerUUID", event.getPlayer().getUniqueId().toString())
         .send();
   }
@@ -153,16 +163,16 @@ public class KamibotRemote extends JavaPlugin implements Listener, CommandExecut
   @EventHandler
   public void onPlayerDeath(PlayerDeathEvent event) {
     Player player = event.getEntity();
-    String killer = player.getKiller() != null ? player.getKiller().getDisplayName() : "environment";
+    String killer = player.getKiller() != null ? player.getKiller().getName() : "environment";
     String playerPosString = String.format("%.2f, %.2f, %.2f", player.getLocation().getX(), player.getLocation().getY(),
         player.getLocation().getZ());
-    String deathMessage = player.getDisplayName() + " was killed by " + killer;
+    String deathMessage = player.getName() + " was killed by " + killer;
     new EventDispatcher()
         .set("result", "DEATH")
         .set("eventType", "PlayerDeathEvent")
-        .set("playerName", player.getDisplayName())
+        .set("playerName", player.getName())
         .set("killerName", killer)
-        .set("damageSource", event.getDeathMessage().toString())
+        .set("damageSource", player.getLastDamageCause().getCause().name())
         .set("playerPos", playerPosString)
         .set("playerUUID", player.getUniqueId().toString())
         .set("deathMessage", deathMessage)
@@ -171,7 +181,7 @@ public class KamibotRemote extends JavaPlugin implements Listener, CommandExecut
 
   public long measureHttpGetDelay() {
     try {
-      URL url = new URL("https://kamibot.kami.live/api");
+      URL url = URI.create("https://kamibot.app/api").toURL();
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
       connection.setRequestMethod("GET");

@@ -1,3 +1,3 @@
-# kamibotSocketUrl: "wss://kamibot.kami.live/minecraftForge/ws"
-# uuid: -1
-# enableVerboseLogging: false
+# kamibotSocketUrl: "wss://kamibot.kami.live/minecraftForge/ws" # URL to connect to the Kamibot server (string)
+# uuid: -1 # Randomly generated UUID (int)
+# enableVerboseLogging: false # Enable verbose logging (boolean)
