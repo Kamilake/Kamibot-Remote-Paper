@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,7 +16,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TranslatableComponent;
 
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -165,22 +166,42 @@ public class KamibotRemote extends JavaPlugin implements Listener {
   @EventHandler
   public void onPlayerDeath(PlayerDeathEvent event) {
     Player player = event.getEntity();
-    String killer = player.getKiller() != null ? player.getKiller().getName() : "environment";
     EntityDamageEvent damageEvent = player.getLastDamageCause();
-    DamageSource damageSource = damageEvent.getDamageSource();
     String playerPosString = String.format("%.2f, %.2f, %.2f", player.getLocation().getX(), player.getLocation().getY(),
         player.getLocation().getZ());
-    String deathMessage = player.getName() + " was killed by " + killer;
-    new EventDispatcher()
-        .set("result", "DEATH")
-        .set("eventType", "PlayerDeathEvent")
-        .set("playerName", player.getName())
-        .set("killerName", killer)
-        .set("damageSource", damageSource.getDamageType().getTranslationKey())
-        .set("playerPos", playerPosString)
-        .set("playerUUID", player.getUniqueId().toString())
-        .set("deathMessage", deathMessage)
-        .send();
+    TranslatableComponent deathMessageComponent = (TranslatableComponent) event.deathMessage();
+    EventDispatcher eventDispatcher = new EventDispatcher();
+    eventDispatcher.set("result", "DEATH");
+    eventDispatcher.set("eventType", "PlayerDeathEvent");
+    eventDispatcher.set("playerName", player.getName());
+    try {
+      // DamageSource 클래스는 1.21 이후에 추가된 클래스로, 1.20에서는 사용할 수 없습니다.
+      Class<?> damageSourceClass = Class.forName("org.bukkit.damage.DamageSource");
+      Method getDamageSourceMethod = damageEvent.getClass().getMethod("getDamageSource");
+      Object damageSource = getDamageSourceMethod.invoke(damageEvent);
+      Method getDamageTypeMethod = damageSource.getClass().getMethod("getDamageType");
+      Object damageType = getDamageTypeMethod.invoke(damageSource);
+      Method getTranslationKeyMethod = damageType.getClass().getMethod("getTranslationKey");
+      String damageTypeTranslationKey = (String) getTranslationKeyMethod.invoke(damageType);
+      eventDispatcher.set("damageSource", damageTypeTranslationKey);
+    } catch (Exception e) {
+      eventDispatcher.set("damageSource", deathMessageComponent.key());
+    }
+    if (player.getKiller() != null) {
+      eventDispatcher.set("killerName", player.getKiller().getName());
+      eventDispatcher.set("killerUUID", player.getKiller().getUniqueId().toString());
+    } else {
+      if (deathMessageComponent.args().size() > 1
+          && deathMessageComponent.args().get(1) instanceof TranslatableComponent) {
+        eventDispatcher.set("killerName", ((TranslatableComponent) deathMessageComponent.args().get(1)).key());
+      } else {
+        eventDispatcher.set("killerName", "environment");
+      }
+    }
+    eventDispatcher.set("playerPos", playerPosString);
+    eventDispatcher.set("playerUUID", player.getUniqueId().toString());
+    eventDispatcher.set("deathMessage", event.getDeathMessage());
+    eventDispatcher.send();
   }
 
   public long measureHttpGetDelay() {
@@ -189,8 +210,8 @@ public class KamibotRemote extends JavaPlugin implements Listener {
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
       connection.setRequestMethod("GET");
-      connection.setConnectTimeout(1000); // Set timeout to 1000ms
-      connection.setReadTimeout(1000); // Set read timeout to 1000ms
+      connection.setConnectTimeout(1000);
+      connection.setReadTimeout(1000);
 
       long startTime = System.currentTimeMillis();
       int responseCode = connection.getResponseCode();
