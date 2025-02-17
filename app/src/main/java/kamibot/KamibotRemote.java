@@ -42,9 +42,15 @@ public class KamibotRemote extends JavaPlugin implements Listener {
     server.getPluginCommand("kamibot-register").setExecutor(this);
     server.getPluginCommand("discord").setExecutor(this);
 
+    String releaseVersion = getDescription().getVersion();
+    if (releaseVersion == null) {
+      releaseVersion = "DEV";
+    }
+
     new EventDispatcher()
         .set("eventType", "ServerStartingEvent")
         .set("motd", ((TextComponent) getServer().motd()).content())
+        .set("releaseVersion", releaseVersion)
         .send();
   }
 
