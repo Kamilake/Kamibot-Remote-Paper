@@ -15,7 +15,12 @@ jobs:
 
       - name: Get Commit Message
         id: get_commit_message
-        run: echo "COMMIT_MESSAGE=$(git log -1 --pretty=%B | jq -sRr @uri)" >> $GITHUB_OUTPUT
+        run: |
+          {
+            echo 'COMMIT_MESSAGE<<EOF'
+            git log -1 --pretty=%B
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
 
       - name: Bump version and push tag
         id: tag_version
