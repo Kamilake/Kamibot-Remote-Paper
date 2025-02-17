@@ -94,6 +94,20 @@ public class WebsocketSender extends WebSocketClient {
   @Override
   public void onClose(int code, String reason, boolean remote) {
     LOGGER.info("Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: " + reason);
+    // Try to reconnect
+    for (int i = 0; i < 10; i++) {
+      try {
+        Thread.sleep(900);
+        if (Config.enableVerboseLogging)
+          LOGGER.info("Reconnecting to websocket server... (" + Config.kamibotSocketUrl + ")");
+        instance = new WebsocketSender(URI.create(Config.kamibotSocketUrl), plugin);
+        instance.connectBlocking(5, TimeUnit.SECONDS);
+        instance.send("{\"eventType\":\"auth\",\"uuid\":" + Config.kamibotRemoteUuid + "}");
+        break;
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   @Override
