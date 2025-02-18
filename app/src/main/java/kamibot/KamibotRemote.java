@@ -51,6 +51,7 @@ public class KamibotRemote extends JavaPlugin implements Listener {
         .set("eventType", "ServerStartingEvent")
         .set("motd", ((TextComponent) getServer().motd()).content())
         .set("releaseVersion", releaseVersion)
+        .set("variant", "Paper")
         .send();
   }
 
